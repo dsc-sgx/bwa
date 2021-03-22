@@ -112,7 +112,7 @@ static void *process(void *shared, int step, void *_data)
 		return data;
 	} else if (step == 2) {
 		for (i = 0; i < data->n_seqs; ++i) {
-			if (data->seqs[i].sam) err_fputs(data->seqs[i].sam, stdout);
+			if (data->seqs[i].sam) err_fputs(data->seqs[i].sam, aux->opt->fpout);
 			free(data->seqs[i].name); free(data->seqs[i].comment);
 			free(data->seqs[i].seq); free(data->seqs[i].qual); free(data->seqs[i].sam);
 		}
@@ -186,7 +186,7 @@ int main_mem(int argc, char *argv[])
 		else if (c == 's') opt->split_width = atoi(optarg), opt0.split_width = 1;
 		else if (c == 'G') opt->max_chain_gap = atoi(optarg), opt0.max_chain_gap = 1;
 		else if (c == 'N') opt->max_chain_extend = atoi(optarg), opt0.max_chain_extend = 1;
-		else if (c == 'o' || c == 'f') xreopen(optarg, "wb", stdout);
+		else if (c == 'o' || c == 'f') opt->fpout = fopen(optarg, "wb");
 		else if (c == 'W') opt->min_chain_weight = atoi(optarg), opt0.min_chain_weight = 1;
 		else if (c == 'y') opt->max_mem_intv = atol(optarg), opt0.max_mem_intv = 1;
 		else if (c == 'C') aux.copy_comment = 1;
@@ -382,7 +382,7 @@ int main_mem(int argc, char *argv[])
 			opt->flag |= MEM_F_PE;
 		}
 	}
-	bwa_print_sam_hdr(aux.idx->bns, hdr_line);
+	bwa_print_sam_hdr(aux.idx->bns, hdr_line, opt->fpout);
 	aux.actual_chunk_size = fixed_chunk_size > 0? fixed_chunk_size : opt->chunk_size * opt->n_threads;
 	kt_pipeline(no_mt_io? 1 : 2, process, &aux, 3);
 	free(hdr_line);
@@ -390,6 +390,7 @@ int main_mem(int argc, char *argv[])
 	bwa_idx_destroy(aux.idx);
 	kseq_destroy(aux.ks);
 	err_gzclose(fp); kclose(ko);
+	fclose(opt->fpout);
 	if (aux.ks2) {
 		kseq_destroy(aux.ks2);
 		err_gzclose(fp2); kclose(ko2);
